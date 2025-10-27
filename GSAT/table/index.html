@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>填寫結果總覽</title>
+    <link rel="icon" sizes="180x180" href="./icon.png" type="image/png" />
+    <link rel="apple-touch-icon-precomposed" sizes="180x180" href="./icon.png" type="image/png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[rgb(105,143,153)] min-h-screen flex items-center justify-center">
+  <div class="bg-white shadow-lg rounded-2xl p-8 w-full max-w-6xl overflow-x-auto">
+    <h1 class="text-2xl font-bold text-center mb-6">填寫結果總覽</h1>
+    <table class="w-full border-collapse border border-gray-400 text-sm text-center">
+      <thead class="bg-gray-200">
+        <tr>
+          <th class="border border-gray-400 px-2 py-1">座號</th>
+          <th class="border border-gray-400 px-2 py-1">第二次英語聽力測驗</th>
+          <th class="border border-gray-400 px-2 py-1">第二次學測模擬考試</th>
+          <th class="border border-gray-400 px-2 py-1">第三次學測模擬考試</th>
+          <th class="border border-gray-400 px-2 py-1">學科能力測驗(學測)</th>
+          <th class="border border-gray-400 px-2 py-1">總額</th>
+          <th class="border border-gray-400 px-2 py-1">最後提交時間</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div id="summary" class="mt-4 text-lg font-semibold text-center"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyADKLi9JJ8kMLJr07vQXEohZS2fVICKcSM",
+        authDomain: "form-167b8.firebaseapp.com",
+        projectId: "form-167b8",
+        storageBucket: "form-167b8.firebasestorage.app",
+        messagingSenderId: "950598111038",
+        appId: "1:950598111038:web:f984ca62ed35f3498e666f"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const tableBody = document.getElementById("tableBody");
+
+    async function loadData() {
+      let totalCollected = 0;
+      let notFilled = 0;
+      const notFilledSeats = [];
+      const skipSeats = [1, 2, 22, 30];
+      for (let i = 1; i <= 33; i++) {
+        if (skipSeats.includes(i)) continue; // 跳過指定座號
+
+        const userRef = doc(db, "users", String(i));
+        const docSnap = await getDoc(userRef);
+
+        const tr = document.createElement("tr");
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+
+          // 寫入 seat 欄位（如果沒有的話）
+          await setDoc(userRef, { seat: String(i) }, { merge: true });
+
+          totalCollected += data.totalPrice || 0;
+
+          const timeStr = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleString("zh-TW", {
+            year: "numeric", month: "2-digit", day: "2-digit",
+            hour: "2-digit", minute: "2-digit"
+          }) : "";
+
+          tr.innerHTML = `
+            <td class="border border-gray-400 px-2 py-1">${i}</td>
+            <td class="border border-gray-400 px-2 py-1">${data.Q1 || ""}</td>
+            <td class="border border-gray-400 px-2 py-1">${data.Q2 || ""}</td>
+            <td class="border border-gray-400 px-2 py-1">${data.Q3 || ""}</td>
+            <td class="border border-gray-400 px-2 py-1">${data.Q4 || ""}</td>
+            <td class="border border-gray-400 px-2 py-1">${data.totalPrice || 0}</td>
+            <td class="border border-gray-400 px-2 py-1">${timeStr}</td>
+          `;
+        } else {
+          notFilled++;
+          notFilledSeats.push(i);
+          tr.classList.add("bg-yellow-200");
+          tr.innerHTML = `
+            <td class="border border-gray-400 px-2 py-1">${i}</td>
+            <td class="border border-gray-400 px-2 py-1" colspan="6"></td>
+          `;
+        }
+        tableBody.appendChild(tr);
+      }
+      document.getElementById("summary").textContent = 
+        `共收金額：${totalCollected} 元　未填寫(${notFilled}人)：${notFilledSeats.join(", ")}`;
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
