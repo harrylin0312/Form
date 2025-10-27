@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>填寫結果總覽</title>
+    <link rel="icon" sizes="180x180" href="./icon.png" type="image/png" />
+    <link rel="apple-touch-icon-precomposed" sizes="180x180" href="./icon.png" type="image/png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[rgb(105,143,153)] min-h-screen flex items-center justify-center">
+  <div class="bg-white shadow-lg rounded-2xl p-8 w-full max-w-6xl overflow-x-auto">
+    <h1 class="text-2xl font-bold text-center mb-6">填寫結果總覽</h1>
+    <table class="w-full border-collapse border border-gray-400 text-sm text-center">
+      <thead class="bg-gray-200">
+        <tr>
+          <th class="border border-gray-400 px-2 py-1">座號</th>
+          <th class="border border-gray-400 px-2 py-1">走路</th>
+          <th class="border border-gray-400 px-2 py-1">自行車</th>
+          <th class="border border-gray-400 px-2 py-1">家長機車接送</th>
+          <th class="border border-gray-400 px-2 py-1">家長汽車接送</th>
+          <th class="border border-gray-400 px-2 py-1">公車</th>
+          <th class="border border-gray-400 px-2 py-1">捷運</th>
+          <th class="border border-gray-400 px-2 py-1">補習班接送</th>
+          <th class="border border-gray-400 px-2 py-1">其他</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div id="summary" class="mt-4 text-lg font-semibold text-center"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyADKLi9JJ8kMLJr07vQXEohZS2fVICKcSM",
+        authDomain: "form-167b8.firebaseapp.com",
+        projectId: "form-167b8",
+        storageBucket: "form-167b8.firebasestorage.app",
+        messagingSenderId: "950598111038",
+        appId: "1:950598111038:web:f984ca62ed35f3498e666f"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const tableBody = document.getElementById("tableBody");
+
+    // 定義交通方式欄位名稱
+    const transportModes = ["走路", "自行車", "家長機車接送", "家長汽車接送", "公車", "捷運", "補習班接送", "其他"];
+
+    function parseMode(modeStr) {
+      if (!modeStr) return "";
+      if (modeStr.startsWith("其他：")) return "其他";
+      return modeStr;
+    }
+
+    async function loadData() {
+      const skipSeats = [1, 2, 22, 30];
+      let filledCount = 0;
+      const missingSeats = [];
+      // 計算上學與放學人數
+      const morningCount = {};
+      const afternoonCount = {};
+      transportModes.forEach(mode => {
+        morningCount[mode] = 0;
+        afternoonCount[mode] = 0;
+      });
+
+      for (let i = 1; i <= 33; i++) {
+        if (skipSeats.includes(i)) continue; // 跳過指定座號
+
+        const userRef = doc(db, "TransportModeUsers", String(i));
+        const docSnap = await getDoc(userRef);
+
+        const tr = document.createElement("tr");
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+
+          // 寫入 seat 欄位（如果沒有的話）
+          await setDoc(userRef, { seat: String(i) }, { merge: true });
+
+          filledCount++;
+
+          // 取得 Q1 (上學) 與 Q2 (放學)
+          const Q1 = data.Q1 || "";
+          const Q2 = data.Q2 || "";
+
+          // 計算人數
+          // 上學
+          if (Q1.startsWith("其他：")) {
+            morningCount["其他"]++;
+          } else if (transportModes.includes(Q1)) {
+            morningCount[Q1]++;
+          }
+          // 放學
+          if (Q2.startsWith("其他：")) {
+            afternoonCount["其他"]++;
+          } else if (transportModes.includes(Q2)) {
+            afternoonCount[Q2]++;
+          }
+
+          // 建立欄位資料物件，初始為空字串
+          const rowData = {};
+          transportModes.forEach(mode => rowData[mode] = "");
+
+          // 判斷顯示內容
+          if (Q1 && Q2) {
+            if (Q1 === Q2) {
+              // 同一選項，顯示「上學, 放學」
+              if (Q1.startsWith("其他：")) {
+                // 其他：內容
+                const otherContent = Q1.slice(3);
+                rowData["其他"] = "上學, 放學";
+              } else if (transportModes.includes(Q1)) {
+                rowData[Q1] = "上學, 放學";
+              }
+            } else {
+              // 不同選項，分別顯示上學方式與放學方式
+              if (Q1.startsWith("其他：")) {
+                const otherContent = Q1.slice(3);
+                rowData["其他"] = `上學方式 : ${otherContent}`;
+              } else if (transportModes.includes(Q1)) {
+                rowData[Q1] = `上學方式`;
+              }
+              if (Q2.startsWith("其他：")) {
+                const otherContent2 = Q2.slice(3);
+                if (rowData["其他"]) {
+                  rowData["其他"] += `, 放學方式 : ${otherContent2}`;
+                } else {
+                  rowData["其他"] = `放學方式 : ${otherContent2}`;
+                }
+              } else if (transportModes.includes(Q2)) {
+                if (rowData[Q2]) {
+                  rowData[Q2] += `, 放學方式`;
+                } else {
+                  rowData[Q2] = `放學方式`;
+                }
+              }
+            }
+          }
+
+          tr.innerHTML = `
+            <td class="border border-gray-400 px-2 py-1">${i}</td>
+            <td class="border border-gray-400 px-2 py-1">${rowData["走路"]}</td>
+            <td class="border border-gray-400 px-2 py-1">${rowData["自行車"]}</td>
+            <td class="border border-gray-400 px-2 py-1">${rowData["家長機車接送"]}</td>
+            <td class="border border-gray-400 px-2 py-1">${rowData["家長汽車接送"]}</td>
+            <td class="border border-gray-400 px-2 py-1">${rowData["公車"]}</td>
+            <td class="border border-gray-400 px-2 py-1">${rowData["捷運"]}</td>
+            <td class="border border-gray-400 px-2 py-1">${rowData["補習班接送"]}</td>
+            <td class="border border-gray-400 px-2 py-1">${rowData["其他"]}</td>
+          `;
+        } else {
+          missingSeats.push(i);
+          tr.classList.add("bg-yellow-200");
+          tr.innerHTML = `
+            <td class="border border-gray-400 px-2 py-1">${i}</td>
+            <td class="border border-gray-400 px-2 py-1" colspan="8"></td>
+          `;
+        }
+        tableBody.appendChild(tr);
+      }
+
+      // 新增兩列顯示人數(上學)、人數(放學)
+      const trMorning = document.createElement("tr");
+      trMorning.classList.add("bg-gray-100", "font-semibold");
+      trMorning.innerHTML = `<td class="border border-gray-400 px-2 py-1">人數(上學)</td>` + transportModes.map(mode => `<td class="border border-gray-400 px-2 py-1">${morningCount[mode]}</td>`).join("");
+      tableBody.appendChild(trMorning);
+
+      const trAfternoon = document.createElement("tr");
+      trAfternoon.classList.add("bg-gray-100", "font-semibold");
+      trAfternoon.innerHTML = `<td class="border border-gray-400 px-2 py-1">人數(放學)</td>` + transportModes.map(mode => `<td class="border border-gray-400 px-2 py-1">${afternoonCount[mode]}</td>`).join("");
+      tableBody.appendChild(trAfternoon);
+
+      document.getElementById("summary").textContent = 
+        `已填寫人數：${filledCount} 人　缺少號碼：${missingSeats.join(", ")}`;
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

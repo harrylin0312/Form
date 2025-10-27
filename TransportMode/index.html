@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>填寫表單</title>
+    <link rel="icon" sizes="180x180" href="./icon.png" type="image/png" />
+    <link rel="apple-touch-icon-precomposed" sizes="180x180" href="./icon.png" type="image/png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[rgb(105,143,153)] min-h-screen flex items-center justify-center">
+    <div class="bg-[rgb(106,167,182)] shadow-lg rounded-2xl p-8 w-full max-w-lg">
+        <h1 class="text-2xl font-bold text-center mb-6">英聽、模考、學測報名調查</h1>
+
+        <!-- 座號 -->
+        <div class="mb-5">
+            <label for="seat" class="block text-xl font-medium mb-2">座號：</label>
+            <select id="seat" class="w-full text-lg py-3 px-4 rounded-xl border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="" disabled selected>請選擇座號</option>
+                <option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="31">31</option><option value="32">32</option><option value="33">33</option>
+            </select>
+        </div>
+
+        <!-- 問題 1 -->
+        <div class="mb-5">
+            <label for="q1" class="block text-xl font-medium mb-2">
+                上學方式
+                <span class="text-gray-500 text-xs ml-2">(如果需要轉程請填「其他」 但 勸你不要)</span>
+            </label>
+            <select id="q1" class="w-full text-lg py-3 px-4 rounded-xl border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="" disabled selected>請選擇</option>
+                <option value="walk">走路</option>
+                <option value="bike">自行車</option>
+                <option value="scooter">家長機車接送</option>
+                <option value="car">家長汽車接送</option>
+                <option value="scooter2">家長機車接送</option>
+                <option value="bus">公車</option>
+                <option value="mrt">捷運</option>
+                <option value="cram">補習班接送</option>
+                <option value="other">其他</option>
+            </select>
+            <input id="q1Other" type="text" placeholder="請輸入詳細內容" class="w-full text-lg py-3 px-4 rounded-xl border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mt-3 hidden">
+        </div>
+
+        <!-- 問題 2 -->
+        <div class="mb-5">
+            <label for="q2" class="block text-xl font-medium mb-2">放學方式</label>
+            <select id="q2" class="w-full text-lg py-3 px-4 rounded-xl border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="" disabled selected>請選擇</option>
+                <option value="walk">走路</option>
+                <option value="bike">自行車</option>
+                <option value="scooter">家長機車接送</option>
+                <option value="car">家長汽車接送</option>
+                <option value="scooter2">家長機車接送</option>
+                <option value="bus">公車</option>
+                <option value="mrt">捷運</option>
+                <option value="cram">補習班接送</option>
+                <option value="other">其他</option>
+            </select>
+            <input id="q2Other" type="text" placeholder="請輸入詳細內容" class="w-full text-lg py-3 px-4 rounded-xl border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mt-3 hidden">
+        </div>
+
+
+        <!-- 提交按鈕 -->
+        <div class="text-center">
+            <button id="submitBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-[970px] shadow-md transition">
+                提交
+            </button>
+            <br>
+            <div class="my-2"></div>
+            <a href="https://youtu.be/dQw4w9WgXcQ?si=Q8d9YZNOpI9EUt2N" target="_blank" class="text-blue-600 hover:underline">
+                <span class="underline">回報問題</span>
+            </a>
+        </div>
+    </div>
+
+    <script type="module">
+        function setupOtherInput(selectId, inputId) {
+            const select = document.getElementById(selectId);
+            const input = document.getElementById(inputId);
+            select.addEventListener("change", () => {
+                if (select.value === "other") {
+                    input.classList.remove("hidden");
+                } else {
+                    input.classList.add("hidden");
+                    input.value = "";
+                }
+            });
+        }
+
+        setupOtherInput("q1", "q1Other");
+        setupOtherInput("q2", "q2Other");
+
+        // Firebase SDK imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // Firebase config and init
+        const firebaseConfig = {
+            apiKey: "AIzaSyADKLi9JJ8kMLJr07vQXEohZS2fVICKcSM",
+            authDomain: "form-167b8.firebaseapp.com",
+            projectId: "form-167b8",
+            storageBucket: "form-167b8.firebasestorage.app",
+            messagingSenderId: "950598111038",
+            appId: "1:950598111038:web:f984ca62ed35f3498e666f"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Get form elements
+        const seatEl = document.getElementById("seat");
+        const q1El = document.getElementById("q1");
+        const q2El = document.getElementById("q2");
+        const q1OtherEl = document.getElementById("q1Other");
+        const q2OtherEl = document.getElementById("q2Other");
+        const submitBtn = document.getElementById("submitBtn");
+
+        submitBtn.addEventListener("click", async () => {
+            const seat = seatEl.value;
+            const q1Value = q1El.value === "other" ? `其他：${q1OtherEl.value.trim()}` : q1El.options[q1El.selectedIndex]?.text;
+            const q2Value = q2El.value === "other" ? `其他：${q2OtherEl.value.trim()}` : q2El.options[q2El.selectedIndex]?.text;
+
+            if (
+                !seat ||
+                !q1El.value ||
+                !q2El.value ||
+                (q1El.value === "other" && !q1OtherEl.value.trim()) ||
+                (q2El.value === "other" && !q2OtherEl.value.trim())
+            ) {
+                alert("請完整填寫所有欄位！");
+                return;
+            }
+
+            const userRef = doc(db, "TransportModeUsers", seat);
+            const docSnap = await getDoc(userRef);
+
+            if (docSnap.exists()) {
+                const overwrite = confirm("該座號已填寫，是否覆蓋？");
+                if (!overwrite) return;
+            }
+
+            submitBtn.disabled = true;
+            try {
+                await setDoc(userRef, {
+                    seat: seat,
+                    Q1: q1Value,
+                    Q2: q2Value,
+                    timestamp: new Date()
+                });
+                alert("提交成功！");
+                q1El.value = "";
+                q2El.value = "";
+                q1OtherEl.value = "";
+                q2OtherEl.value = "";
+                q1OtherEl.classList.add("hidden");
+                q2OtherEl.classList.add("hidden");
+                seatEl.value = "";
+            } catch (e) {
+                console.error("Error writing document: ", e);
+                alert("提交失敗，請稍後再試！");
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</div>
+
+</body>
+</html>
